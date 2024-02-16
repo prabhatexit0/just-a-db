@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <vector>
 
+namespace JustADb {
+
 class Value {
 public:
   enum class Type { INT, STRING, DOUBLE, BOOL };
@@ -105,3 +107,5 @@ private:
   AlterType alter_type_;
   Column column_;
 };
+
+} // End namespace justadb

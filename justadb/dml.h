@@ -1,9 +1,11 @@
 #pragma once
 
+#include "ddl.h"
 #include <optional>
 #include <string>
 #include <vector>
 
+namespace JustADb {
 class WhereClause {
 public:
   enum class Operator {
@@ -56,70 +58,73 @@ class DmlQuery {
 public:
   enum class Kind { SELECT, INSERT, UPDATE, DELETE };
 
-  DmlQuery(Kind kind, std::string table, std::vector<std::string> columns)
-      : kind_(kind), table_(table), columns_(columns) {}
+  DmlQuery(Kind kind, Table table, std::vector<WhereClause> where_clause = {})
+      : kind_(kind), table_(table), where_clauses_(where_clause) {}
 
   DmlQuery &Where(std::string column, std::string value,
                   WhereClause::Operator op) {
-    whereClause_ = WhereClause(column, value, op);
-    return *this;
-  }
-
-  DmlQuery &OrderBy(std::string column, OrderByClause::Order order) {
-    orderByClause_ = OrderByClause(column, order);
+    where_clauses_.push_back(WhereClause(column, value, op));
     return *this;
   }
 
   auto kind() const { return kind_; }
   auto table() const { return table_; }
-  auto columns() const { return columns_; }
-  auto whereClause() const { return whereClause_; }
-  auto orderByClause() const { return orderByClause_; }
+  auto where_clause() const { return where_clauses_; }
 
 private:
   Kind kind_;
-  std::string table_;
-  std::vector<std::string> columns_;
-  std::optional<WhereClause> whereClause_;
-  std::optional<OrderByClause> orderByClause_;
+  Table table_;
+
+  // TODO: Think about generalizing this to filters.
+  std::vector<WhereClause> where_clauses_;
 };
 
 class SelectQuery : public DmlQuery {
 public:
-  SelectQuery(std::string table, std::vector<std::string> columns)
-      : DmlQuery(Kind::SELECT, table, columns) {}
+  SelectQuery(Table table, std::vector<Column> columns)
+      : DmlQuery(Kind::SELECT, table), columns_(columns) {}
+
+  SelectQuery &OrderBy(std::string column, OrderByClause::Order order) {
+    orderByClause_ = OrderByClause(column, order);
+    return *this;
+  }
+
+  auto orderByClause() const { return orderByClause_; }
+
+  auto columns() const { return columns_; }
+
+private:
+  std::optional<OrderByClause> orderByClause_;
+  std::vector<Column> columns_;
 };
 
 class InsertQuery : public DmlQuery {
 public:
-  InsertQuery(std::string table, std::vector<std::string> columns)
-      : DmlQuery(Kind::INSERT, table, columns) {}
+  InsertQuery(Table table, std::unordered_map<Column, Value> insert_values,
+              std::vector<WhereClause> where_clauses)
+      : DmlQuery(Kind::INSERT, table, where_clauses),
+        insert_values_(insert_values) {}
+
+private:
+  std::unordered_map<Column, Value> insert_values_;
 };
 
 class UpdateQuery : public DmlQuery {
 public:
-  class SetClause {
-  public:
-    SetClause(std::string column, std::string value)
-        : column_(column), value_(value) {}
-
-  private:
-    std::string column_;
-    std::string value_;
-  };
-
-  UpdateQuery(SetClause set_clause, std::string table,
-              std::vector<std::string> columns)
-      : DmlQuery(Kind::UPDATE, table, columns), set_clause_(set_clause) {}
-
-  auto set_clause() const { return set_clause_; }
+  UpdateQuery(Table table, std::unordered_map<Column, Value> columns,
+              std::vector<WhereClause> where_clauses)
+      : DmlQuery(Kind::UPDATE, table, where_clauses) {}
 
 private:
-  SetClause set_clause_;
+  std::unordered_map<Column, Value> set_values_;
 };
 
 class DeleteQuery : public DmlQuery {
 public:
-  DeleteQuery(std::string table, std::vector<std::string> columns)
-      : DmlQuery(Kind::DELETE, table, columns) {}
+  DeleteQuery(Table table) : DmlQuery(Kind::DELETE, table) {}
+
+  DeleteQuery(Table table, std::vector<WhereClause> where_clauses)
+      : DmlQuery(Kind::DELETE, table, where_clauses) {}
 };
+
+} // End namespace JustADb
