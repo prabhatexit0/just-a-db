@@ -52,20 +52,20 @@ private:
   Order order_;
 };
 
-class Query {
+class DmlQuery {
 public:
   enum class Kind { SELECT, INSERT, UPDATE, DELETE };
 
-  Query(Kind kind, std::string table, std::vector<std::string> columns)
+  DmlQuery(Kind kind, std::string table, std::vector<std::string> columns)
       : kind_(kind), table_(table), columns_(columns) {}
 
-  Query &Where(std::string column, std::string value,
-               WhereClause::Operator op) {
+  DmlQuery &Where(std::string column, std::string value,
+                  WhereClause::Operator op) {
     whereClause_ = WhereClause(column, value, op);
     return *this;
   }
 
-  Query &OrderBy(std::string column, OrderByClause::Order order) {
+  DmlQuery &OrderBy(std::string column, OrderByClause::Order order) {
     orderByClause_ = OrderByClause(column, order);
     return *this;
   }
@@ -84,19 +84,19 @@ private:
   std::optional<OrderByClause> orderByClause_;
 };
 
-class SelectQuery : public Query {
+class SelectQuery : public DmlQuery {
 public:
   SelectQuery(std::string table, std::vector<std::string> columns)
-      : Query(Kind::SELECT, table, columns) {}
+      : DmlQuery(Kind::SELECT, table, columns) {}
 };
 
-class InsertQuery : public Query {
+class InsertQuery : public DmlQuery {
 public:
   InsertQuery(std::string table, std::vector<std::string> columns)
-      : Query(Kind::INSERT, table, columns) {}
+      : DmlQuery(Kind::INSERT, table, columns) {}
 };
 
-class UpdateQuery : public Query {
+class UpdateQuery : public DmlQuery {
 public:
   class SetClause {
   public:
@@ -110,7 +110,7 @@ public:
 
   UpdateQuery(SetClause set_clause, std::string table,
               std::vector<std::string> columns)
-      : Query(Kind::UPDATE, table, columns), set_clause_(set_clause) {}
+      : DmlQuery(Kind::UPDATE, table, columns), set_clause_(set_clause) {}
 
   auto set_clause() const { return set_clause_; }
 
@@ -118,30 +118,8 @@ private:
   SetClause set_clause_;
 };
 
-class DeleteQuery : public Query {
+class DeleteQuery : public DmlQuery {
 public:
   DeleteQuery(std::string table, std::vector<std::string> columns)
-      : Query(Kind::DELETE, table, columns) {}
-};
-
-class DML {
-public:
-  DML() = default;
-
-  SelectQuery Select(std::string table, std::vector<std::string> columns) {
-    return SelectQuery(table, columns);
-  }
-
-  InsertQuery Insert(std::string table, std::vector<std::string> columns) {
-    return InsertQuery(table, columns);
-  }
-
-  UpdateQuery Update(UpdateQuery::SetClause set_clause, std::string table,
-                     std::vector<std::string> columns) {
-    return UpdateQuery(set_clause, table, columns);
-  }
-
-  DeleteQuery Delete(std::string table, std::vector<std::string> columns) {
-    return DeleteQuery(table, columns);
-  }
+      : DmlQuery(Kind::DELETE, table, columns) {}
 };
