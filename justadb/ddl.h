@@ -108,4 +108,4 @@ private:
   Column column_;
 };
 
-} // End namespace justadb
+} // namespace JustADb
