@@ -2,30 +2,23 @@
 
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace JustADb {
 
 class Value {
 public:
-  enum class Type { INT, STRING, DOUBLE, BOOL };
-  Value(int value) : type_(Type::INT), intValue_(value) {}
-  Value(std::string value) : type_(Type::STRING), stringValue_(value) {}
-  Value(double value) : type_(Type::DOUBLE), doubleValue_(value) {}
-  Value(bool value) : type_(Type::BOOL), boolValue_(value) {}
+  enum class Type { INT, STRING, BOOL, FLOAT };
+
+  Value(std::variant<std::string, int, float, bool> value) : value_(value) {}
 
   auto type() const { return type_; }
-  auto int_value() const { return intValue_; }
-  auto string_value() const { return stringValue_; }
-  auto double_value() const { return doubleValue_; }
-  auto bool_value() const { return boolValue_; }
+  auto value() const { return value_; }
 
 private:
   Type type_;
-  int intValue_;
-  std::string stringValue_;
-  double doubleValue_;
-  bool boolValue_;
+  std::variant<std::string, int, float, bool> value_;
 };
 
 class Column {
@@ -42,11 +35,28 @@ private:
 
 class Tuple {
 public:
-  Tuple(std::unordered_map<Column, Value> values_map)
-      : values_map_(values_map) {}
+  Tuple() : value_map_({}) {}
+  Tuple(std::unordered_map<std::string, Value &> value_map)
+      : value_map_(value_map) {}
+
+  auto values_map() const { return value_map_; }
+
+  auto get_value(std::string column_name) const -> std::optional<Value> {
+    auto value = value_map_.find(column_name);
+    if (value != value_map_.end()) {
+      return value->second;
+    }
+    return std::nullopt;
+  }
+
+  void insert_value(std::string column_name, Value &value) {
+    value_map_.insert({column_name, value});
+  }
+
+  auto is_empty() const { return value_map_.empty(); }
 
 private:
-  std::unordered_map<Column, Value> values_map_;
+  std::unordered_map<std::string, Value &> value_map_;
 };
 
 class Table {
@@ -70,6 +80,8 @@ public:
   enum class Type { CREATE_TABLE, DROP_TABLE, ALTER_TABLE };
   DdlQuery(Type type, std::string table_name)
       : type_(type), table_name_(table_name) {}
+
+  auto type() const { return type_; }
 
 private:
   Type type_;

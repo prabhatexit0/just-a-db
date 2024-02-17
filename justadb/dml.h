@@ -1,5 +1,6 @@
 #pragma once
 
+#include "database.h"
 #include "ddl.h"
 #include <optional>
 #include <string>
@@ -100,23 +101,24 @@ private:
 
 class InsertQuery : public DmlQuery {
 public:
-  InsertQuery(Table table, std::unordered_map<Column, Value> insert_values,
+  InsertQuery(Table table, std::unordered_map<std::string, Value> insert_values,
               std::vector<WhereClause> where_clauses)
       : DmlQuery(Kind::INSERT, table, where_clauses),
         insert_values_(insert_values) {}
 
 private:
-  std::unordered_map<Column, Value> insert_values_;
+  // Key is column name, value is the value to insert.
+  std::unordered_map<std::string, Value> insert_values_;
 };
 
 class UpdateQuery : public DmlQuery {
 public:
-  UpdateQuery(Table table, std::unordered_map<Column, Value> columns,
+  UpdateQuery(Table table, std::unordered_map<std::string, Value> columns,
               std::vector<WhereClause> where_clauses)
       : DmlQuery(Kind::UPDATE, table, where_clauses) {}
 
 private:
-  std::unordered_map<Column, Value> set_values_;
+  std::unordered_map<std::string, Value> set_values_;
 };
 
 class DeleteQuery : public DmlQuery {
@@ -125,6 +127,39 @@ public:
 
   DeleteQuery(Table table, std::vector<WhereClause> where_clauses)
       : DmlQuery(Kind::DELETE, table, where_clauses) {}
+};
+
+class DmlQueryExec {
+public:
+  DmlQueryExec(Database db) : db_(db) {}
+
+  auto Execute(const DmlQuery &query) -> std::optional<std::vector<Tuple>> {
+    switch (query.kind()) {
+    case DmlQuery::Kind::SELECT:
+      return ExecuteSelectQuery(static_cast<const SelectQuery &>(query));
+    case DmlQuery::Kind::INSERT:
+      return ExecuteInsertQuery(static_cast<const InsertQuery &>(query));
+    case DmlQuery::Kind::UPDATE:
+      return ExecuteUpdateQuery(static_cast<const UpdateQuery &>(query));
+    case DmlQuery::Kind::DELETE:
+      return ExecuteDeleteQuery(static_cast<const DeleteQuery &>(query));
+    }
+  }
+
+  auto ExecuteSelectQuery(const SelectQuery &query)
+      -> std::optional<std::vector<Tuple>>;
+
+  auto ExecuteInsertQuery(const InsertQuery &query)
+      -> std::optional<std::vector<Tuple>>;
+
+  auto ExecuteUpdateQuery(const UpdateQuery &query)
+      -> std::optional<std::vector<Tuple>>;
+
+  auto ExecuteDeleteQuery(const DeleteQuery &query)
+      -> std::optional<std::vector<Tuple>>;
+
+private:
+  Database db_;
 };
 
 } // End namespace JustADb
