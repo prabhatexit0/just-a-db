@@ -2,6 +2,7 @@
 
 #include "database.h"
 #include "ddl.h"
+#include "utils.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -133,7 +134,7 @@ class DmlQueryExec {
 public:
   DmlQueryExec(Database db) : db_(db) {}
 
-  auto Execute(const DmlQuery &query) -> std::optional<std::vector<Tuple>> {
+  auto Execute(const DmlQuery &query) -> Result<std::vector<Tuple>> {
     switch (query.kind()) {
     case DmlQuery::Kind::SELECT:
       return ExecuteSelectQuery(static_cast<const SelectQuery &>(query));
@@ -147,16 +148,16 @@ public:
   }
 
   auto ExecuteSelectQuery(const SelectQuery &query)
-      -> std::optional<std::vector<Tuple>>;
+      -> Result<std::vector<Tuple>>;
 
   auto ExecuteInsertQuery(const InsertQuery &query)
-      -> std::optional<std::vector<Tuple>>;
+      -> Result<std::vector<Tuple>>;
 
   auto ExecuteUpdateQuery(const UpdateQuery &query)
-      -> std::optional<std::vector<Tuple>>;
+      -> Result<std::vector<Tuple>>;
 
   auto ExecuteDeleteQuery(const DeleteQuery &query)
-      -> std::optional<std::vector<Tuple>>;
+      -> Result<std::vector<Tuple>>;
 
 private:
   Database db_;

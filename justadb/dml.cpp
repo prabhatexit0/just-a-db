@@ -3,14 +3,14 @@
 namespace JustADb {
 
 auto DmlQueryExec::ExecuteSelectQuery(const SelectQuery &query)
-    -> std::optional<std::vector<Tuple>> {
+    -> Result<std::vector<Tuple>> {
   if (query.columns().empty()) {
-    return std::nullopt;
+    return Result<std::vector<Tuple>>(Error("No columns are selected"));
   }
 
   std::optional<Table> table = this->db_.get_table(query.table().name());
   if (!table.has_value()) {
-    return std::nullopt;
+    return Result<std::vector<Tuple>>(Error("Table not found"));
   }
 
   std::vector<Tuple> result;
@@ -25,7 +25,7 @@ auto DmlQueryExec::ExecuteSelectQuery(const SelectQuery &query)
     }
 
     if (new_tuple.is_empty()) {
-      // TODO: reutrn error ["No column found"]
+      return Result<std::vector<Tuple>>(Error("No column found"));
     }
   }
 
