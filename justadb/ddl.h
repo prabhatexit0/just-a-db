@@ -90,7 +90,8 @@ private:
 
 class CreateDatabaseQuery : public DdlQuery {
 public:
-  CreateDatabaseQuery(std::string db_name) : DdlQuery(Type::CREATE_DB) {}
+  CreateDatabaseQuery(std::string db_name)
+      : DdlQuery(Type::CREATE_DB), db_name_(db_name) {}
   auto db_name() const { return db_name_; }
 
 private:
@@ -205,9 +206,9 @@ private:
 
 class DdlQueryExec {
 public:
-  DdlQueryExec() = default;
+  DdlQueryExec(DatabaseManager db_manager) : db_manager_(db_manager) {}
 
-  auto ExecuteDatabaseQuery(const DdlQuery &query) const -> Result<Database> {
+  auto ExecuteDatabaseQuery(const DdlQuery &query) -> Result<Database> {
     switch (query.type()) {
     case DdlQuery::Type::CREATE_DB:
       return ExecuteCreateDatabaseQuery(
@@ -220,7 +221,7 @@ public:
     }
   }
 
-  auto ExecuteTableQuery(const DdlQuery &query) const -> Result<Table> {
+  auto ExecuteTableQuery(const DdlQuery &query) -> Result<Table> {
     switch (query.type()) {
     case DdlQuery::Type::CREATE_TABLE:
       return ExecuteCreateTableQuery(
@@ -235,16 +236,13 @@ public:
     }
   }
 
-  auto ExecuteCreateDatabaseQuery(const CreateDatabaseQuery &query) const
+  auto ExecuteCreateDatabaseQuery(const CreateDatabaseQuery &query)
       -> Result<Database>;
-  auto ExecuteDropDatabaseQuery(const DropDatabaseQuery &query) const
+  auto ExecuteDropDatabaseQuery(const DropDatabaseQuery &query)
       -> Result<Database>;
-  auto ExecuteCreateTableQuery(const CreateTableQuery &query) const
-      -> Result<Table>;
-  auto ExecuteDropTableQuery(const DropTableQuery &query) const
-      -> Result<Table>;
-  auto ExecuteAlterTableQuery(const AlterTableQuery &query) const
-      -> Result<Table>;
+  auto ExecuteCreateTableQuery(const CreateTableQuery &query) -> Result<Table>;
+  auto ExecuteDropTableQuery(const DropTableQuery &query) -> Result<Table>;
+  auto ExecuteAlterTableQuery(const AlterTableQuery &query) -> Result<Table>;
 
 private:
   DatabaseManager db_manager_;
