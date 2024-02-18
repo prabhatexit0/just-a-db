@@ -173,8 +173,13 @@ private:
 
 class DatabaseManager {
 public:
-  void create_database(std::string name) {
-    databases_.insert({name, Database(name)});
+  auto create_database(std::string name) -> Result<Database> {
+    if (databases_.find(name) != databases_.end()) {
+      return Error("Database already exists");
+    }
+    Database db(name);
+    databases_.insert({name, db});
+    return db;
   }
 
   void drop_database(std::string name) { databases_.erase(name); }
@@ -187,8 +192,15 @@ public:
     return std::nullopt;
   }
 
+  auto current_database() const -> std::optional<Database> {
+    return current_database_;
+  }
+
+  void set_current_database(const Database &db) { current_database_ = db; }
+
 private:
   std::unordered_map<std::string, Database> databases_;
+  std::optional<Database> current_database_;
 };
 
 class DdlQueryExec {
