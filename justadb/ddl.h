@@ -79,46 +79,69 @@ private:
 
 class DdlQuery {
 public:
-  enum class Type { CREATE_TABLE, DROP_TABLE, ALTER_TABLE };
-  DdlQuery(Type type, std::string table_name)
-      : type_(type), table_name_(table_name) {}
+  enum class Type { CREATE_DB, DROP_DB, CREATE_TABLE, DROP_TABLE, ALTER_TABLE };
+  DdlQuery(Type type) : type_(type) {}
 
   auto type() const { return type_; }
-  auto table_name() const -> std::string { return table_name_; }
 
 private:
   Type type_;
-  std::string table_name_;
+};
+
+class CreateDatabaseQuery : public DdlQuery {
+public:
+  CreateDatabaseQuery(std::string db_name) : DdlQuery(Type::CREATE_DB) {}
+  auto db_name() const { return db_name_; }
+
+private:
+  std::string db_name_;
+};
+
+class DropDatabaseQuery : public DdlQuery {
+public:
+  DropDatabaseQuery(std::string db_name) : DdlQuery(Type::DROP_DB) {}
+  auto db_name() const { return db_name_; }
+
+private:
+  std::string db_name_;
 };
 
 class CreateTableQuery : public DdlQuery {
 public:
   CreateTableQuery(std::string table_name, std::vector<Column> columns)
-      : DdlQuery(Type::CREATE_TABLE, table_name), columns_(columns) {}
+      : DdlQuery(Type::CREATE_TABLE), table_name_(table_name),
+        columns_(columns) {}
 
   auto columns() const { return columns_; }
+  auto table_name() const { return table_name_; }
 
 private:
+  std::string table_name_;
   std::vector<Column> columns_;
 };
 
 class DropTableQuery : public DdlQuery {
 public:
   DropTableQuery(std::string table_name)
-      : DdlQuery(Type::DROP_TABLE, table_name) {}
+      : DdlQuery(Type::DROP_TABLE), table_name_(table_name) {}
+
+private:
+  std::string table_name_;
 };
 
 class AlterTableQuery : public DdlQuery {
 public:
   enum class AlterType { ADD_COLUMN, DROP_COLUMN };
   AlterTableQuery(std::string table_name, AlterType alter_type, Column column)
-      : DdlQuery(Type::ALTER_TABLE, table_name), alter_type_(alter_type),
-        column_(column) {}
+      : DdlQuery(Type::ALTER_TABLE), table_name_(table_name),
+        alter_type_(alter_type), column_(column) {}
 
   auto alter_type() const { return alter_type_; }
   auto column() const { return column_; }
+  auto table_name() const { return table_name_; }
 
 private:
+  std::string table_name_;
   AlterType alter_type_;
   Column column_;
 };
@@ -172,7 +195,20 @@ class DdlQueryExec {
 public:
   DdlQueryExec() = default;
 
-  auto Execute(const DdlQuery &query) const -> Result<Table> {
+  auto ExecuteDatabaseQuery(const DdlQuery &query) const -> Result<Database> {
+    switch (query.type()) {
+    case DdlQuery::Type::CREATE_DB:
+      return ExecuteCreateDatabaseQuery(
+          static_cast<const CreateDatabaseQuery &>(query));
+    case DdlQuery::Type::DROP_DB:
+      return ExecuteDropDatabaseQuery(
+          static_cast<const DropDatabaseQuery &>(query));
+    default:
+      return Result<Database>(Error("Unknown database query type"));
+    }
+  }
+
+  auto ExecuteTableQuery(const DdlQuery &query) const -> Result<Table> {
     switch (query.type()) {
     case DdlQuery::Type::CREATE_TABLE:
       return ExecuteCreateTableQuery(
@@ -187,6 +223,10 @@ public:
     }
   }
 
+  auto ExecuteCreateDatabaseQuery(const CreateDatabaseQuery &query) const
+      -> Result<Database>;
+  auto ExecuteDropDatabaseQuery(const DropDatabaseQuery &query) const
+      -> Result<Database>;
   auto ExecuteCreateTableQuery(const CreateTableQuery &query) const
       -> Result<Table>;
   auto ExecuteDropTableQuery(const DropTableQuery &query) const
