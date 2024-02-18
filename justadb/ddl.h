@@ -84,6 +84,7 @@ public:
       : type_(type), table_name_(table_name) {}
 
   auto type() const { return type_; }
+  auto table_name() const -> std::string { return table_name_; }
 
 private:
   Type type_;
@@ -174,19 +175,24 @@ public:
   auto Execute(const DdlQuery &query) const -> Result<Table> {
     switch (query.type()) {
     case DdlQuery::Type::CREATE_TABLE:
-      return ExecuteCreateTableQuery(query);
+      return ExecuteCreateTableQuery(
+          static_cast<const CreateTableQuery &>(query));
     case DdlQuery::Type::DROP_TABLE:
-      return ExecuteDropTableQuery(query);
+      return ExecuteDropTableQuery(static_cast<const DropTableQuery &>(query));
     case DdlQuery::Type::ALTER_TABLE:
-      return ExecuteAlterTableQuery(query);
+      return ExecuteAlterTableQuery(
+          static_cast<const AlterTableQuery &>(query));
     default:
       return Result<Table>(Error("Unknown DDL query type"));
     }
   }
 
-  auto ExecuteCreateTableQuery(const DdlQuery &query) const -> Result<Table>;
-  auto ExecuteDropTableQuery(const DdlQuery &query) const -> Result<Table>;
-  auto ExecuteAlterTableQuery(const DdlQuery &query) const -> Result<Table>;
+  auto ExecuteCreateTableQuery(const CreateTableQuery &query) const
+      -> Result<Table>;
+  auto ExecuteDropTableQuery(const DropTableQuery &query) const
+      -> Result<Table>;
+  auto ExecuteAlterTableQuery(const AlterTableQuery &query) const
+      -> Result<Table>;
 
 private:
   DatabaseManager db_manager_;

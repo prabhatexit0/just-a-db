@@ -2,17 +2,17 @@
 
 namespace JustADb {
 
-auto DdlQueryExec::ExecuteCreateTableQuery(const DdlQuery &query) const
+auto DdlQueryExec::ExecuteCreateTableQuery(const CreateTableQuery &query) const
     -> Result<Table> {
   return Result<Table>(Error("Not implemented"));
 }
 
-auto DdlQueryExec::ExecuteDropTableQuery(const DdlQuery &query) const
+auto DdlQueryExec::ExecuteDropTableQuery(const DropTableQuery &query) const
     -> Result<Table> {
   return Result<Table>(Error("Not implemented"));
 }
 
-auto DdlQueryExec::ExecuteAlterTableQuery(const DdlQuery &query) const
+auto DdlQueryExec::ExecuteAlterTableQuery(const AlterTableQuery &query) const
     -> Result<Table> {
   return Result<Table>(Error("Not implemented"));
 }
