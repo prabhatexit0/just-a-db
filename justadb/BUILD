@@ -10,14 +10,7 @@ cc_library(
     name = "dml",
     hdrs = ["dml.h"],
     srcs = ["dml.cpp"],
-    deps = [":ddl", ":database", ":utils"],
-    visibility = ["//visibility:public"],
-)
-
-cc_library(
-    name = "database",
-    hdrs = ["database.h"],
-    deps = [":ddl"],
+    deps = [":ddl", ":utils"],
     visibility = ["//visibility:public"],
 )
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utils.h"
+
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -118,6 +120,76 @@ public:
 private:
   AlterType alter_type_;
   Column column_;
+};
+
+class Database {
+public:
+  Database(std::string name) : name_(name) {}
+
+  void create_table(std::string name, Table table) {
+    tables_.insert({name, table});
+  }
+
+  void drop_table(std::string name) { tables_.erase(name); }
+
+  auto get_table(std::string name) const -> std::optional<Table> {
+    if (auto something = tables_.find(name); something != tables_.end()) {
+      return something->second;
+    }
+
+    return std::nullopt;
+  }
+
+  auto name() const { return name_; }
+
+private:
+  std::string name_;
+  std::unordered_map<std::string, Table> tables_;
+};
+
+class DatabaseManager {
+public:
+  void create_database(std::string name) {
+    databases_.insert({name, Database(name)});
+  }
+
+  void drop_database(std::string name) { databases_.erase(name); }
+
+  auto get_database(std::string name) const -> std::optional<Database> {
+    if (auto something = databases_.find(name); something != databases_.end()) {
+      return something->second;
+    }
+
+    return std::nullopt;
+  }
+
+private:
+  std::unordered_map<std::string, Database> databases_;
+};
+
+class DdlQueryExec {
+public:
+  DdlQueryExec() = default;
+
+  auto Execute(const DdlQuery &query) const -> Result<Table> {
+    switch (query.type()) {
+    case DdlQuery::Type::CREATE_TABLE:
+      return ExecuteCreateTableQuery(query);
+    case DdlQuery::Type::DROP_TABLE:
+      return ExecuteDropTableQuery(query);
+    case DdlQuery::Type::ALTER_TABLE:
+      return ExecuteAlterTableQuery(query);
+    default:
+      return Result<Table>(Error("Unknown DDL query type"));
+    }
+  }
+
+  auto ExecuteCreateTableQuery(const DdlQuery &query) const -> Result<Table>;
+  auto ExecuteDropTableQuery(const DdlQuery &query) const -> Result<Table>;
+  auto ExecuteAlterTableQuery(const DdlQuery &query) const -> Result<Table>;
+
+private:
+  DatabaseManager db_manager_;
 };
 
 } // namespace JustADb

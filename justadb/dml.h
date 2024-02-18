@@ -1,6 +1,5 @@
 #pragma once
 
-#include "database.h"
 #include "ddl.h"
 #include "utils.h"
 #include <optional>
