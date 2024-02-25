@@ -29,14 +29,27 @@ private:
   Kind kind_;
 };
 
-template <typename T> class Result {
-public:
-  Result() = default;
-  Result(const T &value) : value_(value) {}
-  Result(const Error &error) : error_(error) {}
+template <typename T>
+class Result {
+  public:
+  Result(T value) : value_(value) {}
+  Result(Error error) : error_(error) {}
 
-  auto value() const { return *value_; }
-  auto error() const { return error_; }
+  auto value() const -> T {
+    return value_.value();
+  }
+
+  auto error() const -> Error {
+    return error_.value();
+  }
+
+  auto has_value() const -> bool {
+    return value_.has_value();
+  } 
+
+  auto has_error() const -> bool {
+    return error_.has_value();
+  } 
 
 private:
   std::optional<T> value_;

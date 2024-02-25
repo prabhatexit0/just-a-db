@@ -131,35 +131,19 @@ public:
 
 class DmlQueryExec {
 public:
-  DmlQueryExec(Database db) : db_(db) {}
-
-  auto Execute(const DmlQuery &query) -> Result<std::vector<Tuple>> {
-    switch (query.kind()) {
-    case DmlQuery::Kind::SELECT:
-      return ExecuteSelectQuery(static_cast<const SelectQuery &>(query));
-    case DmlQuery::Kind::INSERT:
-      return ExecuteInsertQuery(static_cast<const InsertQuery &>(query));
-    case DmlQuery::Kind::UPDATE:
-      return ExecuteUpdateQuery(static_cast<const UpdateQuery &>(query));
-    case DmlQuery::Kind::DELETE:
-      return ExecuteDeleteQuery(static_cast<const DeleteQuery &>(query));
-    }
-  }
+  DmlQueryExec(Database& db) : db_(db) {}
 
   auto ExecuteSelectQuery(const SelectQuery &query)
-      -> Result<std::vector<Tuple>>;
-
+      -> Result<std::vector<const Tuple*>>;
   auto ExecuteInsertQuery(const InsertQuery &query)
-      -> Result<std::vector<Tuple>>;
-
+      -> Result<std::vector<const Tuple*>>;
   auto ExecuteUpdateQuery(const UpdateQuery &query)
-      -> Result<std::vector<Tuple>>;
-
+      -> Result<int>;
   auto ExecuteDeleteQuery(const DeleteQuery &query)
-      -> Result<std::vector<Tuple>>;
+      -> Result<int>;
 
 private:
-  Database db_;
+  Database& db_;
 };
 
 } // End namespace JustADb
