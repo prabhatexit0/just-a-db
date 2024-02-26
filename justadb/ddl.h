@@ -38,33 +38,30 @@ private:
 class Tuple {
 public:
   Tuple() : value_map_({}) {}
-  Tuple(std::unordered_map<std::string, const Value*> value_map)
+  Tuple(std::unordered_map<std::string, const Value *> value_map)
       : value_map_(value_map) {}
 
-  auto values_map() const { return value_map_; }
-
-  auto get_value(std::string column_name) const -> std::optional<const Value*> {
-    auto value = value_map_.find(column_name);
-    if (value != value_map_.end()) {
-      return value->second;
-    }
-    return std::nullopt;
-  }
-
-  void insert_value(std::string column_name, const Value* value) {
-    value_map_.insert({column_name, value});
-  }
+  auto GetValue(std::string column_name) const -> std::optional<const Value *>;
+  void InsertValue(std::string column_name, const Value *value);
 
   auto is_empty() const { return value_map_.empty(); }
 
+  auto values_map() const { return value_map_; }
+
 private:
-  std::unordered_map<std::string, const Value*> value_map_;
+  std::unordered_map<std::string, const Value *> value_map_;
 };
 
 class Table {
 public:
-  Table(std::string name, std::vector<const Column*> columns)
+  Table(std::string name, std::vector<const Column *> columns)
       : name_(name), columns_(columns), tuples_({}) {}
+
+  auto InsertTuple(const Tuple *tuple) -> Result<const Tuple *>;
+  auto SelectTuple(std::string column_name, const Value *value) const -> std::vector<const Tuple *>;
+  auto SelectAll() const -> std::vector<const Tuple *> { return tuples_; }
+  auto AddColumn(const Column *column) -> Result<const Column *>;
+  auto DropColumn(std::string column_name) -> Result<bool>;
 
   auto name() const { return name_; }
   auto columns() const { return columns_; }
@@ -72,8 +69,8 @@ public:
 
 private:
   std::string name_;
-  std::vector<const Column*> columns_;
-  std::vector<const Tuple*> tuples_;
+  std::vector<const Column *> columns_;
+  std::vector<const Tuple *> tuples_;
 };
 
 class DdlQuery {
@@ -91,6 +88,7 @@ class CreateDatabaseQuery : public DdlQuery {
 public:
   CreateDatabaseQuery(std::string db_name)
       : DdlQuery(Type::CREATE_DB), db_name_(db_name) {}
+
   auto db_name() const { return db_name_; }
 
 private:
@@ -100,6 +98,7 @@ private:
 class DropDatabaseQuery : public DdlQuery {
 public:
   DropDatabaseQuery(std::string db_name) : DdlQuery(Type::DROP_DB) {}
+
   auto db_name() const { return db_name_; }
 
 private:
@@ -108,7 +107,7 @@ private:
 
 class CreateTableQuery : public DdlQuery {
 public:
-  CreateTableQuery(std::string table_name, std::vector<const Column*> columns)
+  CreateTableQuery(std::string table_name, std::vector<const Column *> columns)
       : DdlQuery(Type::CREATE_TABLE), table_name_(table_name),
         columns_(columns) {}
 
@@ -117,7 +116,7 @@ public:
 
 private:
   std::string table_name_;
-  std::vector<const Column*> columns_;
+  std::vector<const Column *> columns_;
 };
 
 class DropTableQuery : public DdlQuery {
@@ -133,8 +132,14 @@ private:
 
 class AlterTableQuery : public DdlQuery {
 public:
-  enum class AlterType { ADD_COLUMN, DROP_COLUMN };
-  AlterTableQuery(std::string table_name, AlterType alter_type, const Column* column)
+  enum class AlterType {
+    ADD_COLUMN,
+    DROP_COLUMN,
+    RENAME_COLUMN,
+    MODIFY_DATATYPE
+  };
+  AlterTableQuery(std::string table_name, AlterType alter_type,
+                  const Column *column)
       : DdlQuery(Type::ALTER_TABLE), table_name_(table_name),
         alter_type_(alter_type), column_(column) {}
 
@@ -145,92 +150,34 @@ public:
 private:
   std::string table_name_;
   AlterType alter_type_;
-  const Column* column_;
+  const Column *column_;
 };
 
 class Database {
 public:
   Database(std::string name) : name_(name) {}
 
-  auto create_table(std::string name, std::vector<const Column*> columns) -> Result<const Table*> {
-    if (tables_.find(name) != tables_.end()) {
-      return Error("Table already exists");
-    }
-    const Table* table = new Table(name, columns);
-    auto [it, is_inserted] = tables_.insert({table->name(), table});
-    if (!is_inserted) {
-      return Error("Cannot create table");
-    }
-    return it->second;
-  }
-
-  auto drop_table(std::string table_name) -> Result<bool> {
-    if (tables_.find(table_name) == tables_.end()) {
-      return Error("Table does not exist");
-    }
-
-    // Find a way to know if table is really dropped
-    tables_.erase(table_name);
-    return true;
-  }
-
-  auto update_table(std::string table_name, const Table* table) -> Result<const Table*> {
-    if (tables_.find(table_name) == tables_.end()) {
-      return Error("Table does not exist");
-    }
-
-    tables_.erase(table_name);
-    tables_[table_name] = table;
-    return table;
-  }
-
-  auto get_table(std::string name) const -> std::optional<const Table*> {
-    if (auto something = tables_.find(name); something != tables_.end()) {
-      return something->second;
-    }
-
-    return std::nullopt;
-  }
+  auto CreateTable(std::string name, std::vector<const Column *> columns)
+      -> Result<const Table *>;
+  auto DropTable(std::string table_name) -> Result<bool>;
+  auto UpdateTable(std::string table_name, const Table *table)
+      -> Result<const Table *>;
+  auto GetTable(std::string name) const -> std::optional<const Table *>;
 
   auto name() const { return name_; }
 
 private:
   std::string name_;
-  std::unordered_map<std::string, const Table*> tables_;
+  std::unordered_map<std::string, const Table *> tables_;
 };
 
 class DatabaseManager {
 public:
-  auto create_database(std::string name) -> Result<const Database*> {
-    if (databases_.find(name) != databases_.end()) {
-      return Error("Database already exists");
-    }
-    Database *db = new Database(name);
-    databases_.insert({name, db});
-    return db;
-  }
+  auto CreateDatabase(std::string name) -> Result<const Database *>;
+  auto DropDatabase(std::string name) -> Result<bool>;
+  auto GetDatabase(std::string name) const -> std::optional<const Database *>;
 
-  auto drop_database(std::string name) -> Result<bool> {
-    if (databases_.find(name) == databases_.end()) {
-      return Error("Database does not exist");
-    }
-
-    return databases_.erase(name);
-  }
-
-  auto get_database(std::string name) const -> std::optional<const Database*> {
-    if (auto something = databases_.find(name); something != databases_.end()) {
-      return something->second;
-    }
-
-    return std::nullopt;
-  }
-
-  auto current_database() -> std::optional<Database*> {
-    return current_database_;
-  }
-
-  auto set_current_database(Database* db) -> Result<bool> {
+  auto SetCurrentDatabase(Database *db) -> Result<bool> {
     if (databases_.find(db->name()) == databases_.end()) {
       return Error("Database does not exist");
     }
@@ -239,24 +186,32 @@ public:
     return true;
   }
 
+  auto current_database() -> std::optional<Database *> {
+    return current_database_;
+  }
+
 private:
-  std::unordered_map<std::string, Database*> databases_;
-  std::optional<Database*> current_database_;
+  std::unordered_map<std::string, Database *> databases_;
+  std::optional<Database *> current_database_;
 };
 
 class DdlQueryExec {
 public:
-  DdlQueryExec(DatabaseManager* db_manager) : db_manager_(db_manager) {}
+  DdlQueryExec(DatabaseManager *db_manager) : db_manager_(db_manager) {}
 
   auto ExecuteCreateDatabaseQuery(const CreateDatabaseQuery &query)
-      -> Result<const Database*>;
+      -> Result<const Database *>;
   auto ExecuteDropDatabaseQuery(const DropDatabaseQuery &query) -> Result<bool>;
-  auto ExecuteCreateTableQuery(const CreateTableQuery &query) -> Result<const Table*>;
+  auto ExecuteCreateTableQuery(const CreateTableQuery &query)
+      -> Result<const Table *>;
   auto ExecuteDropTableQuery(const DropTableQuery &query) -> Result<bool>;
-  auto ExecuteAlterTableQuery(const AlterTableQuery &query) -> Result<const Table*>;
+  auto ExecuteAlterTableQuery(const AlterTableQuery &query)
+      -> Result<const Table *>;
+
+  auto db_manager() const { return db_manager_; }
 
 private:
-  DatabaseManager* db_manager_;
+  DatabaseManager *db_manager_;
 };
 
 } // namespace JustADb

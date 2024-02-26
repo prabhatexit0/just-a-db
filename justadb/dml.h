@@ -131,19 +131,17 @@ public:
 
 class DmlQueryExec {
 public:
-  DmlQueryExec(Database& db) : db_(db) {}
+  DmlQueryExec(Database &db) : db_(db) {}
 
   auto ExecuteSelectQuery(const SelectQuery &query)
-      -> Result<std::vector<const Tuple*>>;
+      -> Result<std::vector<const Tuple *>>;
   auto ExecuteInsertQuery(const InsertQuery &query)
-      -> Result<std::vector<const Tuple*>>;
-  auto ExecuteUpdateQuery(const UpdateQuery &query)
-      -> Result<int>;
-  auto ExecuteDeleteQuery(const DeleteQuery &query)
-      -> Result<int>;
+      -> Result<std::vector<const Tuple *>>;
+  auto ExecuteUpdateQuery(const UpdateQuery &query) -> Result<int>;
+  auto ExecuteDeleteQuery(const DeleteQuery &query) -> Result<int>;
 
 private:
-  Database& db_;
+  Database &db_;
 };
 
 } // End namespace JustADb
