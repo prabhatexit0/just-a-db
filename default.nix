@@ -2,8 +2,6 @@
 
 pkgs.mkShell {
   buildInputs = with pkgs; [
-    llvm_17
-    bazel
-    libcxxabi
+    bazel_7
   ];
 }
