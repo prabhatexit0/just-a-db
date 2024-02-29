@@ -63,6 +63,15 @@ public:
   auto AddColumn(const Column *column) -> Result<const Column *>;
   auto DropColumn(std::string column_name) -> Result<bool>;
 
+  auto GetColumn(std::string name) const -> std::optional<const Column *> {
+    for (const auto *column : columns_) {
+      if (column->name() == name) {
+        return column;
+      }
+    }
+    return std::nullopt;
+  }
+
   auto name() const { return name_; }
   auto columns() const { return columns_; }
   auto tuples() const { return tuples_; }
