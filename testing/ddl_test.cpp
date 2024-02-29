@@ -2,14 +2,17 @@
 #include "justadb/ddl.h"
 
 TEST(DDLTest, DdlQueriesTest) {
-    auto db_name = "test_db";
-    JustADb::CreateDatabaseQuery create_db_query("test_db");
-    JustADb::DatabaseManager db_manager;
-    EXPECT_FALSE(db_manager.GetDatabase(db_name)) << "Database already exists";
+    using namespace JustADb;
+    const auto DB_NAME = "test_db";
 
-    JustADb::DdlQueryExec ddl_query_exec(&db_manager);
+CreateDatabaseQuery create_db_query(DB_NAME);
+    DatabaseManager db_manager;
+    EXPECT_FALSE(db_manager.GetDatabase(DB_NAME)) << "Database already exists";
+
+    DdlQueryExec ddl_query_exec(&db_manager);
     ddl_query_exec.ExecuteCreateDatabaseQuery(create_db_query);
-    EXPECT_TRUE(db_manager.GetDatabase(db_name)) << "Database not created";
+    EXPECT_TRUE(db_manager.GetDatabase(DB_NAME)) << "Database not created";
 
-    JustADb::UseDatabaseQuery use_db_query("test_db");
+    UseDatabaseQuery use_db_query(DB_NAME);
+    EXPECT_TRUE(db_manager.current_database().value()->name() == DB_NAME)  << "Database not set";
 }
