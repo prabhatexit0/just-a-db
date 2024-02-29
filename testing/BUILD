@@ -6,3 +6,10 @@ cc_test(
   srcs = ["test_main.cpp"],
   deps = ["@googletest//:gtest_main"],
 )
+
+cc_test(
+  name = "ddl_test",
+  size = "small",
+  srcs = ["ddl_test.cpp"],
+  deps = ["@googletest//:gtest_main", "//justadb:ddl"],
+)
