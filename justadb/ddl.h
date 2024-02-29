@@ -2,38 +2,36 @@
 
 #include "utils.h"
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <variant>
 #include <vector>
-#include <optional>
 
 namespace JustADb {
 
 class Value {
 public:
-  enum class Type { INT, STRING, BOOL, FLOAT };
-
   Value(std::variant<std::string, int, float, bool> value) : value_(value) {}
 
-  auto type() const { return type_; }
   auto value() const { return value_; }
 
 private:
-  Type type_;
   std::variant<std::string, int, float, bool> value_;
 };
 
 class Column {
 public:
-  Column(std::string name, Value::Type type) : name_(name), type_(type) {}
+  enum class Type { INT, STRING, BOOL, FLOAT };
+
+  Column(std::string name, Type type) : name_(name), type_(type) {}
 
   auto name() const { return name_; }
   auto type() const { return type_; }
 
 private:
   std::string name_;
-  Value::Type type_;
+  Type type_;
 };
 
 class Tuple {
@@ -59,10 +57,20 @@ public:
       : name_(name), columns_(columns), tuples_({}) {}
 
   auto InsertTuple(const Tuple *tuple) -> Result<const Tuple *>;
-  auto SelectTuple(std::string column_name, const Value *value) const -> std::vector<const Tuple *>;
+  auto SelectTuple(std::string column_name, const Value *value) const
+      -> std::vector<const Tuple *>;
   auto SelectAll() const -> std::vector<const Tuple *> { return tuples_; }
   auto AddColumn(const Column *column) -> Result<const Column *>;
   auto DropColumn(std::string column_name) -> Result<bool>;
+
+  auto GetColumn(std::string name) const -> std::optional<const Column *> {
+    for (const auto *column : columns_) {
+      if (column->name() == name) {
+        return column;
+      }
+    }
+    return std::nullopt;
+  }
 
   auto name() const { return name_; }
   auto columns() const { return columns_; }
@@ -76,7 +84,14 @@ private:
 
 class DdlQuery {
 public:
-  enum class Type { CREATE_DB, DROP_DB, CREATE_TABLE, DROP_TABLE, ALTER_TABLE };
+  enum class Type {
+    CREATE_DB,
+    DROP_DB,
+    CREATE_TABLE,
+    DROP_TABLE,
+    ALTER_TABLE,
+    USE_DB
+  };
   DdlQuery(Type type) : type_(type) {}
 
   auto type() const { return type_; }
@@ -89,6 +104,17 @@ class CreateDatabaseQuery : public DdlQuery {
 public:
   CreateDatabaseQuery(std::string db_name)
       : DdlQuery(Type::CREATE_DB), db_name_(db_name) {}
+
+  auto db_name() const { return db_name_; }
+
+private:
+  std::string db_name_;
+};
+
+class UseDatabaseQuery : public DdlQuery {
+public:
+  UseDatabaseQuery(std::string db_name)
+      : DdlQuery(Type::USE_DB), db_name_(db_name) {}
 
   auto db_name() const { return db_name_; }
 
@@ -176,7 +202,7 @@ class DatabaseManager {
 public:
   auto CreateDatabase(std::string name) -> Result<const Database *>;
   auto DropDatabase(std::string name) -> Result<bool>;
-  auto GetDatabase(std::string name) const -> std::optional<const Database *>;
+  auto GetDatabase(std::string name) const -> std::optional<Database *>;
 
   auto SetCurrentDatabase(Database *db) -> Result<bool> {
     if (databases_.find(db->name()) == databases_.end()) {
@@ -200,6 +226,7 @@ class DdlQueryExec {
 public:
   DdlQueryExec(DatabaseManager *db_manager) : db_manager_(db_manager) {}
 
+  auto ExecuteUseDatabaseQuery(const UseDatabaseQuery &query) -> Result<bool>;
   auto ExecuteCreateDatabaseQuery(const CreateDatabaseQuery &query)
       -> Result<const Database *>;
   auto ExecuteDropDatabaseQuery(const DropDatabaseQuery &query) -> Result<bool>;
