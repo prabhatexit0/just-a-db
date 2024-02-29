@@ -12,6 +12,7 @@ namespace JustADb {
 
 class Value {
 public:
+  Value(std::variant<std::string, int, float, bool> value) : value_(value) {}
 
   auto value() const { return value_; }
 
