@@ -122,12 +122,22 @@ auto DatabaseManager::DropDatabase(std::string name) -> Result<bool> {
 }
 
 auto DatabaseManager::GetDatabase(std::string name) const
-    -> std::optional<const Database *> {
+    -> std::optional<Database *> {
   if (auto something = databases_.find(name); something != databases_.end()) {
     return something->second;
   }
 
   return std::nullopt;
+}
+
+auto DdlQueryExec::ExecuteUseDatabaseQuery(const UseDatabaseQuery &query)
+    -> Result<bool> {
+  auto db = db_manager_->GetDatabase(query.db_name());
+  if (!db.has_value()) {
+    return Error("Database does not exist");
+  }
+  db_manager_->SetCurrentDatabase(*db);
+  return true;
 }
 
 auto DdlQueryExec::ExecuteCreateDatabaseQuery(const CreateDatabaseQuery &query)
