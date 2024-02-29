@@ -34,5 +34,6 @@ TEST(DDLTest, DdlQueriesTest) {
     EXPECT_TRUE(column_from_db_access) << "Column not found in table";
     EXPECT_EQ(COLUMN_NAME, column_from_db_access.value()->name()) << "Column name mismatch";
 
+
     delete column_1;
 }

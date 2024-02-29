@@ -1,9 +1,10 @@
 #include "ddl.h"
-#include <iostream>
+
+#include <utility>
 
 namespace JustADb {
 
-auto Tuple::GetValue(std::string column_name) const
+auto Tuple::GetValue(const std::string& column_name) const
     -> std::optional<const Value *> {
   auto value = value_map_.find(column_name);
   if (value != value_map_.end()) {
@@ -12,7 +13,7 @@ auto Tuple::GetValue(std::string column_name) const
   return std::nullopt;
 }
 
-void Tuple::InsertValue(std::string column_name, const Value *value) {
+void Tuple::InsertValue(const std::string& column_name, const Value *value) {
   value_map_.insert({column_name, value});
 }
 
@@ -25,7 +26,7 @@ void Tuple::InsertValue(std::string column_name, const Value *value) {
     return tuple;
   }
 
-  auto Table::SelectTuple(std::string column_name, const Value *value) const
+  auto Table::SelectTuple(const std::string& column_name, const Value *value) const
       -> std::vector<const Tuple *> {
     std::vector<const Tuple *> result;
     for (const auto &tuple : tuples_) {
@@ -48,7 +49,7 @@ void Tuple::InsertValue(std::string column_name, const Value *value) {
     return column;
   }
 
-  auto Table::DropColumn(std::string column_name) -> Result<bool> {
+  auto Table::DropColumn(const std::string& column_name) -> Result<bool> {
     for (auto it = columns_.begin(); it != columns_.end(); ++it) {
       if ((*it)->name() == column_name) {
         columns_.erase(it);
@@ -59,13 +60,13 @@ void Tuple::InsertValue(std::string column_name, const Value *value) {
     return Error("Column does not exist");
   }
 
-auto Database::CreateTable(std::string name,
+auto Database::CreateTable(const std::string& name,
                            std::vector<const Column *> columns)
     -> Result<const Table *> {
   if (tables_.find(name) != tables_.end()) {
     return Error("Table already exists");
   }
-  const Table *table = new Table(name, columns);
+  const Table *table = new Table(name, std::move(columns));
   auto [it, is_inserted] = tables_.insert({table->name(), table});
   if (!is_inserted) {
     return Error("Cannot create table");
@@ -73,7 +74,7 @@ auto Database::CreateTable(std::string name,
   return it->second;
 }
 
-auto Database::DropTable(std::string table_name) -> Result<bool> {
+auto Database::DropTable(const std::string& table_name) -> Result<bool> {
   if (tables_.find(table_name) == tables_.end()) {
     return Error("Table does not exist");
   }
@@ -83,7 +84,7 @@ auto Database::DropTable(std::string table_name) -> Result<bool> {
   return true;
 }
 
-auto Database::UpdateTable(std::string table_name, const Table *table)
+auto Database::UpdateTable(const std::string& table_name, const Table *table)
     -> Result<const Table *> {
   if (tables_.find(table_name) == tables_.end()) {
     return Error("Table does not exist");
@@ -94,7 +95,7 @@ auto Database::UpdateTable(std::string table_name, const Table *table)
   return table;
 }
 
-auto Database::GetTable(std::string name) const
+auto Database::GetTable(const std::string& name) const
     -> std::optional<const Table *> {
   if (auto something = tables_.find(name); something != tables_.end()) {
     return something->second;
@@ -103,17 +104,17 @@ auto Database::GetTable(std::string name) const
   return std::nullopt;
 }
 
-auto DatabaseManager::CreateDatabase(std::string name)
+auto DatabaseManager::CreateDatabase(const std::string& name)
     -> Result<const Database *> {
   if (databases_.find(name) != databases_.end()) {
     return Error("Database already exists");
   }
-  Database *db = new Database(name);
+  auto *db = new Database(name);
   databases_.insert({name, db});
   return db;
 }
 
-auto DatabaseManager::DropDatabase(std::string name) -> Result<bool> {
+auto DatabaseManager::DropDatabase(const std::string& name) -> Result<bool> {
   if (databases_.find(name) == databases_.end()) {
     return Error("Database does not exist");
   }
@@ -121,7 +122,7 @@ auto DatabaseManager::DropDatabase(std::string name) -> Result<bool> {
   return databases_.erase(name);
 }
 
-auto DatabaseManager::GetDatabase(std::string name) const
+auto DatabaseManager::GetDatabase(const std::string& name) const
     -> std::optional<Database *> {
   if (auto something = databases_.find(name); something != databases_.end()) {
     return something->second;
@@ -142,7 +143,7 @@ auto DdlQueryExec::ExecuteUseDatabaseQuery(const UseDatabaseQuery &query)
 
 auto DdlQueryExec::ExecuteCreateDatabaseQuery(const CreateDatabaseQuery &query)
     -> Result<const Database *> {
-  if (query.db_name() == "") {
+  if (query.db_name().empty()) {
     return Error("Database name cannot be empty");
   }
   return db_manager_->CreateDatabase(query.db_name());

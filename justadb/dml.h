@@ -4,6 +4,7 @@
 #include "utils.h"
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace JustADb {
@@ -25,11 +26,11 @@ public:
   };
 
   WhereClause(std::string column, std::string value, Operator op)
-      : column_(column), value_(value), op_(op) {}
+      : column_(std::move(column)), value_(std::move(value)), op_(op) {}
 
-  auto column() const { return column_; }
-  auto value() const { return value_; }
-  auto op() const { return op_; }
+  [[nodiscard]] auto column() const { return column_; }
+  [[nodiscard]] auto value() const { return value_; }
+  [[nodiscard]] auto op() const { return op_; }
 
 private:
   std::string column_;
@@ -45,10 +46,10 @@ public:
   };
 
   OrderByClause(std::string column, Order order)
-      : column_(column), order_(order) {}
+      : column_(std::move(column)), order_(order) {}
 
-  auto column() const { return column_; }
-  auto order() const { return order_; }
+  [[nodiscard]] auto column() const { return column_; }
+  [[nodiscard]] auto order() const { return order_; }
 
 private:
   std::string column_;
@@ -60,17 +61,17 @@ public:
   enum class Kind { SELECT, INSERT, UPDATE, DELETE };
 
   DmlQuery(Kind kind, Table table, std::vector<WhereClause> where_clause = {})
-      : kind_(kind), table_(table), where_clauses_(where_clause) {}
+      : kind_(kind), table_(std::move(table)), where_clauses_(std::move(where_clause)) {}
 
-  DmlQuery &Where(std::string column, std::string value,
+  DmlQuery &Where(const std::string& column, const std::string& value,
                   WhereClause::Operator op) {
-    where_clauses_.push_back(WhereClause(column, value, op));
+    where_clauses_.emplace_back(column, value, op);
     return *this;
   }
 
-  auto kind() const { return kind_; }
-  auto table() const { return table_; }
-  auto where_clause() const { return where_clauses_; }
+  [[nodiscard]] auto kind() const { return kind_; }
+  [[nodiscard]] auto table() const { return table_; }
+  [[nodiscard]] auto where_clause() const { return where_clauses_; }
 
 private:
   Kind kind_;
@@ -83,16 +84,16 @@ private:
 class SelectQuery : public DmlQuery {
 public:
   SelectQuery(Table table, std::vector<Column> columns)
-      : DmlQuery(Kind::SELECT, table), columns_(columns) {}
+      : DmlQuery(Kind::SELECT, std::move(table)), columns_(std::move(columns)) {}
 
   SelectQuery &OrderBy(std::string column, OrderByClause::Order order) {
-    orderByClause_ = OrderByClause(column, order);
+    orderByClause_ = OrderByClause(std::move(column), order);
     return *this;
   }
 
-  auto orderByClause() const { return orderByClause_; }
+  [[nodiscard]] auto orderByClause() const { return orderByClause_; }
 
-  auto columns() const { return columns_; }
+  [[nodiscard]] auto columns() const { return columns_; }
 
 private:
   std::optional<OrderByClause> orderByClause_;
@@ -103,8 +104,8 @@ class InsertQuery : public DmlQuery {
 public:
   InsertQuery(Table table, std::unordered_map<std::string, Value> insert_values,
               std::vector<WhereClause> where_clauses)
-      : DmlQuery(Kind::INSERT, table, where_clauses),
-        insert_values_(insert_values) {}
+      : DmlQuery(Kind::INSERT, std::move(table), std::move(where_clauses)),
+        insert_values_(std::move(insert_values)) {}
 
 private:
   // Key is column name, value is the value to insert.
@@ -113,9 +114,9 @@ private:
 
 class UpdateQuery : public DmlQuery {
 public:
-  UpdateQuery(Table table, std::unordered_map<std::string, Value> columns,
+  UpdateQuery(Table table, const std::unordered_map<std::string, Value>& columns,
               std::vector<WhereClause> where_clauses)
-      : DmlQuery(Kind::UPDATE, table, where_clauses) {}
+      : DmlQuery(Kind::UPDATE, std::move(table), std::move(where_clauses)) {}
 
 private:
   std::unordered_map<std::string, Value> set_values_;
@@ -123,15 +124,15 @@ private:
 
 class DeleteQuery : public DmlQuery {
 public:
-  DeleteQuery(Table table) : DmlQuery(Kind::DELETE, table) {}
+  explicit DeleteQuery(Table table) : DmlQuery(Kind::DELETE, std::move(table)) {}
 
   DeleteQuery(Table table, std::vector<WhereClause> where_clauses)
-      : DmlQuery(Kind::DELETE, table, where_clauses) {}
+      : DmlQuery(Kind::DELETE, std::move(table), std::move(where_clauses)) {}
 };
 
 class DmlQueryExec {
 public:
-  DmlQueryExec(Database &db) : db_(db) {}
+  explicit DmlQueryExec(Database &db) : db_(db) {}
 
   auto ExecuteSelectQuery(const SelectQuery &query)
       -> Result<std::vector<const Tuple *>>;

@@ -11,19 +11,19 @@ public:
     Unknown,
   };
 
-  Error(Kind kind = Kind::Unknown) : kind_(kind) {}
+  explicit Error(Kind kind = Kind::Unknown) : kind_(kind) {}
 
-  Error(const std::string &message, Kind kind = Kind::Unknown)
+  explicit Error(const std::string &message, Kind kind = Kind::Unknown)
       : message_(message), kind_(kind) {}
 
-  auto message() const -> std::string {
+  [[nodiscard]] auto message() const -> std::string {
     if (message_.has_value()) {
       return message_.value();
     } else {
       return "Unknown error";
     }
   }
-  auto kind() const { return kind_; }
+  [[nodiscard]] auto kind() const { return kind_; }
 
 private:
   std::optional<std::string> message_;
@@ -36,19 +36,19 @@ class Result {
   Result(T value) : value_(value) {}
   Result(Error error) : error_(error) {}
 
-  auto value() const -> T {
+  [[nodiscard]] auto value() const -> T {
     return value_.value();
   }
 
-  auto error() const -> Error {
+  [[nodiscard]] auto error() const -> Error {
     return error_.value();
   }
 
-  auto has_value() const -> bool {
+  [[nodiscard]] auto has_value() const -> bool {
     return value_.has_value();
   } 
 
-  auto has_error() const -> bool {
+  [[nodiscard]] auto has_error() const -> bool {
     return error_.has_value();
   } 
 

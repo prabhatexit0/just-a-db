@@ -36,4 +36,12 @@ auto DmlQueryExec::ExecuteInsertQuery(const InsertQuery &query)
   return Error("Not implemented");
 }
 
+auto DmlQueryExec::ExecuteUpdateQuery(const UpdateQuery &query) -> Result<int> {
+    return Error("Not implemented");
+}
+
+auto DmlQueryExec::ExecuteDeleteQuery(const JustADb::DeleteQuery &query) -> Result<int> {
+    return Error("Not implemented");
+}
+
 } // namespace JustADb
