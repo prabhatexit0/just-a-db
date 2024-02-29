@@ -12,28 +12,25 @@ namespace JustADb {
 
 class Value {
 public:
-  enum class Type { INT, STRING, BOOL, FLOAT };
 
-  Value(std::variant<std::string, int, float, bool> value) : value_(value) {}
-
-  auto type() const { return type_; }
   auto value() const { return value_; }
 
 private:
-  Type type_;
   std::variant<std::string, int, float, bool> value_;
 };
 
 class Column {
 public:
-  Column(std::string name, Value::Type type) : name_(name), type_(type) {}
+  enum class Type { INT, STRING, BOOL, FLOAT };
+
+  Column(std::string name, Type type) : name_(name), type_(type) {}
 
   auto name() const { return name_; }
   auto type() const { return type_; }
 
 private:
   std::string name_;
-  Value::Type type_;
+  Type type_;
 };
 
 class Tuple {
