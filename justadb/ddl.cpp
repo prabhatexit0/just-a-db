@@ -17,7 +17,7 @@ void Tuple::InsertValue(const std::string& column_name, const Value *value) {
   value_map_.insert({column_name, value});
 }
 
-  auto Table::InsertTuple(const Tuple *tuple) -> Result<const Tuple *> {
+  auto Table::InsertTuple(Tuple *tuple) -> Result<const Tuple *> {
     if (tuple->values_map().size() != columns_.size()) {
       return Error("Tuple does not match table schema");
     }
@@ -38,7 +38,7 @@ void Tuple::InsertValue(const std::string& column_name, const Value *value) {
     return result;
   }
 
-  auto Table::AddColumn(const Column *column) -> Result<const Column *> {
+  auto Table::AddColumn(Column *column) -> Result<const Table *> {
     for (const auto &col : columns_) {
       if (col->name() == column->name()) {
         return Error("Column already exists");
@@ -46,14 +46,14 @@ void Tuple::InsertValue(const std::string& column_name, const Value *value) {
     }
 
     columns_.push_back(column);
-    return column;
+    return this;
   }
 
-  auto Table::DropColumn(const std::string& column_name) -> Result<bool> {
+  auto Table::DropColumn(const std::string& column_name) -> Result<const Table*> {
     for (auto it = columns_.begin(); it != columns_.end(); ++it) {
       if ((*it)->name() == column_name) {
         columns_.erase(it);
-        return true;
+        return this;
       }
     }
 
@@ -61,12 +61,12 @@ void Tuple::InsertValue(const std::string& column_name, const Value *value) {
   }
 
 auto Database::CreateTable(const std::string& name,
-                           std::vector<const Column *> columns)
+                           std::vector<Column *> columns)
     -> Result<const Table *> {
   if (tables_.find(name) != tables_.end()) {
     return Error("Table already exists");
   }
-  const Table *table = new Table(name, std::move(columns));
+  auto *table = new Table(name, std::move(columns));
   auto [it, is_inserted] = tables_.insert({table->name(), table});
   if (!is_inserted) {
     return Error("Cannot create table");
@@ -84,7 +84,7 @@ auto Database::DropTable(const std::string& table_name) -> Result<bool> {
   return true;
 }
 
-auto Database::UpdateTable(const std::string& table_name, const Table *table)
+auto Database::UpdateTable(const std::string& table_name, Table *table)
     -> Result<const Table *> {
   if (tables_.find(table_name) == tables_.end()) {
     return Error("Table does not exist");
@@ -103,6 +103,15 @@ auto Database::GetTable(const std::string& name) const
 
   return std::nullopt;
 }
+
+auto Database::GetModifiableTable(const std::string &name) const -> std::optional<Table *> {
+    if (auto something = tables_.find(name); something != tables_.end()) {
+        return something->second;
+    }
+
+    return std::nullopt;
+}
+
 
 auto DatabaseManager::CreateDatabase(const std::string& name)
     -> Result<const Database *> {
@@ -174,7 +183,44 @@ auto DdlQueryExec::ExecuteDropTableQuery(const DropTableQuery &query)
 
 auto DdlQueryExec::ExecuteAlterTableQuery(const AlterTableQuery &query)
     -> Result<const Table *> {
-  return Error("Not implemented yet");
+    auto current_db = db_manager_->current_database();
+    if (!current_db) {
+        return Error("No database selected");
+    }
+
+    auto table = (*current_db)->GetModifiableTable(query.table_name());
+    if (!table) {
+        return Error("Table name not found");
+    }
+
+    switch(query.alter_type()) {
+        case AlterTableQuery::AlterType::ADD_COLUMN: {
+            return (*table)->AddColumn(query.column());
+        }
+        case AlterTableQuery::AlterType::DROP_COLUMN: {
+            return (*table)->DropColumn(query.column()->name());
+        }
+        case AlterTableQuery::AlterType::MODIFY_DATATYPE: {
+            for (auto* column : (*table)->columns()) {
+                if (column->name() == query.column()->name())  {
+                    column->set_type(query.column()->type());
+                    return *table;
+                }
+            }
+
+            return Error("Column not found");
+        }
+        case AlterTableQuery::AlterType::RENAME_COLUMN: {
+            for (auto* column : (*table)->columns()) {
+                if (column->name() == query.column()->name())  {
+                    column->rename_column(query.column()->name());
+                    return *table;
+                }
+            }
+
+            return Error("Column not found");
+        }
+    }
 }
 
 } // namespace JustADb
