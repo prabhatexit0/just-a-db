@@ -11,12 +11,14 @@ TEST(DDLTest, DdlQueriesTest) {
   EXPECT_FALSE(db_manager.GetDatabase(DB_NAME)) << "Database already exists";
 
   DdlQueryExec ddl_query_exec(&db_manager);
-  ddl_query_exec.ExecuteCreateDatabaseQuery(create_db_query);
+  auto query_exec_result = ddl_query_exec.ExecuteCreateDatabaseQuery(create_db_query);
+  EXPECT_TRUE(query_exec_result);
   EXPECT_TRUE(db_manager.GetDatabase(DB_NAME)) << "Database not created";
 
   // User Database Query test
   UseDatabaseQuery use_db_query(DB_NAME);
-  ddl_query_exec.ExecuteUseDatabaseQuery(use_db_query);
+  query_exec_result = ddl_query_exec.ExecuteUseDatabaseQuery(use_db_query);
+  EXPECT_TRUE(query_exec_result);
   EXPECT_TRUE(db_manager.current_database()) << "Current database not set";
   EXPECT_EQ(DB_NAME, db_manager.current_database().value()->name())
       << "Current database name mismatch";

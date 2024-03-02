@@ -6,6 +6,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <expected>
 
 namespace JustADb {
 class WhereClause {
@@ -159,11 +160,11 @@ public:
   explicit DmlQueryExec(Database &db) : db_(db) {}
 
   auto ExecuteSelectQuery(const SelectQuery &query)
-      -> Result<std::vector<const Tuple *>>;
+      -> std::expected<std::vector<const Tuple *>, Error>;
   auto ExecuteInsertQuery(const InsertQuery &query)
-      -> Result<std::vector<const Tuple *>>;
-  auto ExecuteUpdateQuery(const UpdateQuery &query) -> Result<int>;
-  auto ExecuteDeleteQuery(const DeleteQuery &query) -> Result<int>;
+      -> std::expected<std::vector<const Tuple *>, Error>;
+  auto ExecuteUpdateQuery(const UpdateQuery &query) -> std::expected<int, Error>;
+  auto ExecuteDeleteQuery(const DeleteQuery &query) -> std::expected<int, Error>;
 
 private:
   Database &db_;

@@ -3,14 +3,14 @@
 namespace JustADb {
 
 auto DmlQueryExec::ExecuteSelectQuery(const SelectQuery &query)
-    -> Result<std::vector<const Tuple *>> {
+    -> std::expected<std::vector<const Tuple *>, Error> {
   if (query.columns().empty()) {
-    return Error("No columns are selected");
+    return std::unexpected(Error("No columns are selected"));
   }
 
   std::optional<const Table *> table = this->db_.GetTable(query.table().name());
   if (!table.has_value()) {
-    return Error("Table not found");
+    return  std::unexpected(Error("Table not found"));
   }
 
   std::vector<const Tuple *> result;
@@ -24,7 +24,7 @@ auto DmlQueryExec::ExecuteSelectQuery(const SelectQuery &query)
     }
 
     if (new_tuple.is_empty()) {
-      return Error("No column found");
+      return  std::unexpected(Error("No column found"));
     }
   }
 
@@ -32,17 +32,17 @@ auto DmlQueryExec::ExecuteSelectQuery(const SelectQuery &query)
 }
 
 auto DmlQueryExec::ExecuteInsertQuery(const InsertQuery &query)
-    -> Result<std::vector<const Tuple *>> {
-  return Error("Not implemented");
+    -> std::expected<std::vector<const Tuple *>, Error> {
+  return  std::unexpected(Error("Not implemented"));
 }
 
-auto DmlQueryExec::ExecuteUpdateQuery(const UpdateQuery &query) -> Result<int> {
-  return Error("Not implemented");
+auto DmlQueryExec::ExecuteUpdateQuery(const UpdateQuery &query) -> std::expected<int, Error> {
+  return  std::unexpected(Error("Not implemented"));
 }
 
 auto DmlQueryExec::ExecuteDeleteQuery(const JustADb::DeleteQuery &query)
-    -> Result<int> {
-  return Error("Not implemented");
+    -> std::expected<int, Error> {
+  return  std::unexpected(Error("Not implemented"));
 }
 
 } // namespace JustADb

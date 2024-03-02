@@ -32,30 +32,4 @@ private:
   Kind kind_;
 };
 
-template <typename T> class Result {
-public:
-  Result(T value) : value_(value) {}
-  Result(Error error) : error_(error) {}
-
-  [[nodiscard]] auto value() const -> T {
-    return value_.value();
-  }
-
-  [[nodiscard]] auto error() const -> Error {
-    return error_.value();
-  }
-
-  [[nodiscard]] auto has_value() const -> bool {
-    return value_.has_value();
-  }
-
-  [[nodiscard]] auto has_error() const -> bool {
-    return error_.has_value();
-  }
-
-private:
-  std::optional<T> value_;
-  std::optional<Error> error_;
-};
-
 } // namespace JustADb

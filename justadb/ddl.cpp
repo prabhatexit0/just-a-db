@@ -1,7 +1,5 @@
 #include "ddl.h"
 
-#include <utility>
-
 namespace JustADb {
 
 auto Tuple::GetValue(const std::string &column_name) const
@@ -17,9 +15,9 @@ void Tuple::InsertValue(const std::string &column_name, const Value *value) {
   value_map_.insert({column_name, value});
 }
 
-auto Table::InsertTuple(Tuple *tuple) -> Result<const Tuple *> {
+auto Table::InsertTuple(Tuple *tuple) -> std::expected<const Tuple *, Error> {
   if (tuple->values_map().size() != columns_.size()) {
-    return Error("Tuple does not match table schema");
+    return std::unexpected(Error("Tuple does not match table schema"));
   }
 
   tuples_.push_back(tuple);
@@ -39,10 +37,10 @@ auto Table::SelectTuple(const std::string &column_name,
   return result;
 }
 
-auto Table::AddColumn(Column *column) -> Result<const Table *> {
+auto Table::AddColumn(Column *column) -> std::expected<const Table *, Error> {
   for (const auto &col : columns_) {
     if (col->name() == column->name()) {
-      return Error("Column already exists");
+      return std::unexpected(Error("Column already exists"));
     }
   }
 
@@ -51,7 +49,7 @@ auto Table::AddColumn(Column *column) -> Result<const Table *> {
 }
 
 auto Table::DropColumn(const std::string &column_name)
-    -> Result<const Table *> {
+    -> std::expected<const Table *, Error> {
   for (auto it = columns_.begin(); it != columns_.end(); ++it) {
     if ((*it)->name() == column_name) {
       columns_.erase(it);
@@ -59,37 +57,36 @@ auto Table::DropColumn(const std::string &column_name)
     }
   }
 
-  return Error("Column does not exist");
+  return std::unexpected(Error("Column does not exist"));
 }
 
 auto Database::CreateTable(const std::string &name,
                            std::vector<Column *> columns)
-    -> Result<const Table *> {
+    -> std::expected<const Table *, Error> {
   if (tables_.find(name) != tables_.end()) {
-    return Error("Table already exists");
+    return std::unexpected(Error("Table already exists"));
   }
   auto *table = new Table(name, std::move(columns));
   auto [it, is_inserted] = tables_.insert({table->name(), table});
   if (!is_inserted) {
-    return Error("Cannot create table");
+    return std::unexpected(Error("Cannot create table"));
   }
   return it->second;
 }
 
-auto Database::DropTable(const std::string &table_name) -> Result<bool> {
+auto Database::DropTable(const std::string &table_name) -> std::expected<void, Error> {
   if (tables_.find(table_name) == tables_.end()) {
-    return Error("Table does not exist");
+    return std::unexpected(Error("Table does not exist"));
   }
 
-  // Find a way to know if table is really dropped
   tables_.erase(table_name);
-  return true;
+  return std::expected<void, Error>(std::in_place);
 }
 
 auto Database::UpdateTable(const std::string &table_name, Table *table)
-    -> Result<const Table *> {
+    -> std::expected<const Table *, Error> {
   if (tables_.find(table_name) == tables_.end()) {
-    return Error("Table does not exist");
+    return std::unexpected(Error("Table does not exist"));
   }
 
   tables_.erase(table_name);
@@ -116,21 +113,22 @@ auto Database::GetModifiableTable(const std::string &name) const
 }
 
 auto DatabaseManager::CreateDatabase(const std::string &name)
-    -> Result<const Database *> {
+    -> std::expected<void, Error> {
   if (databases_.find(name) != databases_.end()) {
-    return Error("Database already exists");
+    return std::unexpected(Error("Database already exists"));
   }
   auto *db = new Database(name);
   databases_.insert({name, db});
-  return db;
+  return std::expected<void, Error>(std::in_place);
 }
 
-auto DatabaseManager::DropDatabase(const std::string &name) -> Result<bool> {
+auto DatabaseManager::DropDatabase(const std::string &name) -> std::expected<void, Error> {
   if (databases_.find(name) == databases_.end()) {
-    return Error("Database does not exist");
+    return std::unexpected(Error("Database does not exist"));
   }
 
-  return databases_.erase(name);
+  databases_.erase(name);
+  return std::expected<void, Error>(std::in_place);
 }
 
 auto DatabaseManager::GetDatabase(const std::string &name) const
@@ -143,56 +141,56 @@ auto DatabaseManager::GetDatabase(const std::string &name) const
 }
 
 auto DdlQueryExec::ExecuteUseDatabaseQuery(const UseDatabaseQuery &query)
-    -> Result<bool> {
+    -> std::expected<void, Error> {
   auto db = db_manager_->GetDatabase(query.db_name());
   if (!db.has_value()) {
-    return Error("Database does not exist");
+    return std::unexpected(Error("Database does not exist"));
   }
   db_manager_->SetCurrentDatabase(*db);
-  return true;
+  return std::expected<void, Error>(std::in_place);
 }
 
 auto DdlQueryExec::ExecuteCreateDatabaseQuery(const CreateDatabaseQuery &query)
-    -> Result<const Database *> {
+    -> std::expected<void, Error> {
   if (query.db_name().empty()) {
-    return Error("Database name cannot be empty");
+    return std::unexpected(Error("Database name cannot be empty"));
   }
   return db_manager_->CreateDatabase(query.db_name());
 }
 
 auto DdlQueryExec::ExecuteDropDatabaseQuery(const DropDatabaseQuery &query)
-    -> Result<bool> {
+    -> std::expected<void, Error> {
   return db_manager_->DropDatabase(query.db_name());
 }
 
 auto DdlQueryExec::ExecuteCreateTableQuery(const CreateTableQuery &query)
-    -> Result<const Table *> {
+    -> std::expected<const Table *, Error> {
   auto current_db = db_manager_->current_database();
   if (!current_db) {
-    return Error("No database selected");
+    return std::unexpected(Error("No database selected"));
   }
   return (*current_db)->CreateTable(query.table_name(), query.columns());
 }
 
 auto DdlQueryExec::ExecuteDropTableQuery(const DropTableQuery &query)
-    -> Result<bool> {
+    -> std::expected<void, Error> {
   auto current_db = db_manager_->current_database();
   if (!current_db) {
-    return Error("No database selected");
+    return std::unexpected(Error("No database selected"));
   }
   return (*current_db)->DropTable(query.table_name());
 }
 
 auto DdlQueryExec::ExecuteAlterTableQuery(const AlterTableQuery &query)
-    -> Result<const Table *> {
+    -> std::expected<const Table *, Error> {
   auto current_db = db_manager_->current_database();
   if (!current_db) {
-    return Error("No database selected");
+    return std::unexpected(Error("No database selected"));
   }
 
   auto table = (*current_db)->GetModifiableTable(query.table_name());
   if (!table) {
-    return Error("Table name not found");
+    return std::unexpected(Error("Table name not found"));
   }
 
   switch (query.alter_type()) {
@@ -210,7 +208,7 @@ auto DdlQueryExec::ExecuteAlterTableQuery(const AlterTableQuery &query)
       }
     }
 
-    return Error("Column not found");
+    return std::unexpected(Error("Column not found"));
   }
   case AlterTableQuery::AlterType::RENAME_COLUMN: {
     for (auto *column : (*table)->columns()) {
@@ -220,7 +218,7 @@ auto DdlQueryExec::ExecuteAlterTableQuery(const AlterTableQuery &query)
       }
     }
 
-    return Error("Column not found");
+    return std::unexpected(Error("Column not found"));
   }
   }
 }

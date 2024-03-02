@@ -1,2 +1,2 @@
-build --copt -std=c++20
+build --cxxopt='-std=c++2b'
 build --repo_env=CC=clang++

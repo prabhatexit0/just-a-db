@@ -8,6 +8,7 @@
 #include <utility>
 #include <variant>
 #include <vector>
+#include <expected>
 
 namespace JustADb {
 
@@ -82,7 +83,7 @@ public:
   Table(std::string name, std::vector<Column *> columns)
       : name_(std::move(name)), columns_(std::move(columns)), tuples_({}) {}
 
-  auto InsertTuple(Tuple *tuple) -> Result<const Tuple *>;
+  auto InsertTuple(Tuple *tuple) -> std::expected<const Tuple *, Error>;
 
   auto SelectTuple(const std::string &column_name, const Value *value) const
       -> std::vector<const Tuple *>;
@@ -91,9 +92,9 @@ public:
     return tuples_;
   }
 
-  auto AddColumn(Column *column) -> Result<const Table *>;
+  auto AddColumn(Column *column) -> std::expected<const Table *, Error>;
 
-  auto DropColumn(const std::string &column_name) -> Result<const Table *>;
+  auto DropColumn(const std::string &column_name) -> std::expected<const Table *, Error>;
 
   [[nodiscard]] auto GetColumn(const std::string &name) const
       -> std::optional<const Column *> {
@@ -251,12 +252,12 @@ public:
   explicit Database(std::string name) : name_(std::move(name)) {}
 
   auto CreateTable(const std::string &name, std::vector<Column *> columns)
-      -> Result<const Table *>;
+      -> std::expected<const Table *, Error>;
 
-  auto DropTable(const std::string &table_name) -> Result<bool>;
+  auto DropTable(const std::string &table_name) -> std::expected<void, Error>;
 
   auto UpdateTable(const std::string &table_name, Table *table)
-      -> Result<const Table *>;
+      -> std::expected<const Table *, Error>;
 
   [[nodiscard]] auto GetTable(const std::string &name) const
       -> std::optional<const Table *>;
@@ -275,16 +276,16 @@ private:
 
 class DatabaseManager {
 public:
-  auto CreateDatabase(const std::string &name) -> Result<const Database *>;
+  auto CreateDatabase(const std::string &name) -> std::expected<void, Error>;
 
-  auto DropDatabase(const std::string &name) -> Result<bool>;
+  auto DropDatabase(const std::string &name) -> std::expected<void, Error>;
 
   [[nodiscard]] auto GetDatabase(const std::string &name) const
       -> std::optional<Database *>;
 
-  auto SetCurrentDatabase(Database *db) -> Result<bool> {
+  auto SetCurrentDatabase(Database *db) -> std::expected<bool, Error> {
     if (databases_.find(db->name()) == databases_.end()) {
-      return Error("Database does not exist");
+      return std::unexpected(Error("Database does not exist"));
     }
 
     current_database_ = db;
@@ -305,20 +306,20 @@ public:
   explicit DdlQueryExec(DatabaseManager *db_manager)
       : db_manager_(db_manager) {}
 
-  auto ExecuteUseDatabaseQuery(const UseDatabaseQuery &query) -> Result<bool>;
+  auto ExecuteUseDatabaseQuery(const UseDatabaseQuery &query) -> std::expected<void, Error>;
 
   auto ExecuteCreateDatabaseQuery(const CreateDatabaseQuery &query)
-      -> Result<const Database *>;
+      -> std::expected<void, Error>;
 
-  auto ExecuteDropDatabaseQuery(const DropDatabaseQuery &query) -> Result<bool>;
+  auto ExecuteDropDatabaseQuery(const DropDatabaseQuery &query) -> std::expected<void, Error>;
 
   auto ExecuteCreateTableQuery(const CreateTableQuery &query)
-      -> Result<const Table *>;
+      -> std::expected<const Table *, Error>;
 
-  auto ExecuteDropTableQuery(const DropTableQuery &query) -> Result<bool>;
+  auto ExecuteDropTableQuery(const DropTableQuery &query) -> std::expected<void, Error>;
 
   auto ExecuteAlterTableQuery(const AlterTableQuery &query)
-      -> Result<const Table *>;
+      -> std::expected<const Table *, Error>;
 
   [[nodiscard]] auto db_manager() const {
     return db_manager_;
