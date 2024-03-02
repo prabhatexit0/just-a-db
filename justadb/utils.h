@@ -1,6 +1,6 @@
 #pragma once
-#include <string>
 #include <optional>
+#include <string>
 
 namespace JustADb {
 
@@ -23,16 +23,17 @@ public:
       return "Unknown error";
     }
   }
-  [[nodiscard]] auto kind() const { return kind_; }
+  [[nodiscard]] auto kind() const {
+    return kind_;
+  }
 
 private:
   std::optional<std::string> message_;
   Kind kind_;
 };
 
-template <typename T>
-class Result {
-  public:
+template <typename T> class Result {
+public:
   Result(T value) : value_(value) {}
   Result(Error error) : error_(error) {}
 
@@ -46,11 +47,11 @@ class Result {
 
   [[nodiscard]] auto has_value() const -> bool {
     return value_.has_value();
-  } 
+  }
 
   [[nodiscard]] auto has_error() const -> bool {
     return error_.has_value();
-  } 
+  }
 
 private:
   std::optional<T> value_;
