@@ -1,5 +1,4 @@
 #include "ddl.h"
-#include <iostream>
 
 int main() {
   JustADb::DatabaseManager db_manager;
