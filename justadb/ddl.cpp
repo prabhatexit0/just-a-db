@@ -146,8 +146,7 @@ auto DdlQueryExec::ExecuteUseDatabaseQuery(const UseDatabaseQuery &query)
   if (!db.has_value()) {
     return std::unexpected(Error("Database does not exist"));
   }
-  db_manager_->SetCurrentDatabase(*db);
-  return std::expected<void, Error>(std::in_place);
+  return db_manager_->SetCurrentDatabase(*db);
 }
 
 auto DdlQueryExec::ExecuteCreateDatabaseQuery(const CreateDatabaseQuery &query)

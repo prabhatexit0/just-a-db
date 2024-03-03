@@ -283,13 +283,13 @@ public:
   [[nodiscard]] auto GetDatabase(const std::string &name) const
       -> std::optional<Database *>;
 
-  auto SetCurrentDatabase(Database *db) -> std::expected<bool, Error> {
+  auto SetCurrentDatabase(Database *db) -> std::expected<void, Error> {
     if (databases_.find(db->name()) == databases_.end()) {
       return std::unexpected(Error("Database does not exist"));
     }
 
     current_database_ = db;
-    return true;
+    return std::expected<void, Error>(std::in_place);
   }
 
   auto current_database() -> std::optional<Database *> {
