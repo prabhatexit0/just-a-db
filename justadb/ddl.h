@@ -2,13 +2,13 @@
 
 #include "utils.h"
 
+#include <expected>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
-#include <expected>
 
 namespace JustADb {
 
@@ -92,9 +92,9 @@ public:
     return tuples_;
   }
 
-  auto AddColumn(Column *column) -> std::expected<const Table *, Error>;
+  auto AddColumn(Column *column) -> std::expected<void, Error>;
 
-  auto DropColumn(const std::string &column_name) -> std::expected<const Table *, Error>;
+  auto DropColumn(const std::string &column_name) -> std::expected<void, Error>;
 
   [[nodiscard]] auto GetColumn(const std::string &name) const
       -> std::optional<const Column *> {
@@ -174,7 +174,7 @@ private:
 class DropDatabaseQuery : public DdlQuery {
 public:
   explicit DropDatabaseQuery(const std::string &db_name)
-      : DdlQuery(Type::DROP_DB) {}
+      : DdlQuery(Type::DROP_DB), db_name_(db_name) {}
 
   [[nodiscard]] auto db_name() const {
     return db_name_;
@@ -225,9 +225,13 @@ public:
     MODIFY_DATATYPE
   };
 
-  AlterTableQuery(std::string table_name, AlterType alter_type, Column *column)
+  explicit AlterTableQuery(
+      std::string table_name, AlterType alter_type, Column *column,
+      std::optional<std::string> new_column_name = std::nullopt,
+      std::optional<Column::Type> new_column_type = std::nullopt)
       : DdlQuery(Type::ALTER_TABLE), table_name_(std::move(table_name)),
-        alter_type_(alter_type), column_(column) {}
+        alter_type_(alter_type), column_(column),
+        new_column_name_(std::move(new_column_name)), new_column_type_(new_column_type) {}
 
   [[nodiscard]] auto alter_type() const {
     return alter_type_;
@@ -241,10 +245,20 @@ public:
     return table_name_;
   }
 
+  [[nodiscard]] auto new_column_name() const {
+    return new_column_name_;
+  }
+
+  [[nodiscard]] auto new_column_type() const {
+    return new_column_type_;
+  }
+
 private:
   std::string table_name_;
   AlterType alter_type_;
   Column *column_;
+  std::optional<std::string> new_column_name_;
+  std::optional<Column::Type> new_column_type_;
 };
 
 class Database {
@@ -306,20 +320,23 @@ public:
   explicit DdlQueryExec(DatabaseManager *db_manager)
       : db_manager_(db_manager) {}
 
-  auto ExecuteUseDatabaseQuery(const UseDatabaseQuery &query) -> std::expected<void, Error>;
+  auto ExecuteUseDatabaseQuery(const UseDatabaseQuery &query)
+      -> std::expected<void, Error>;
 
   auto ExecuteCreateDatabaseQuery(const CreateDatabaseQuery &query)
       -> std::expected<void, Error>;
 
-  auto ExecuteDropDatabaseQuery(const DropDatabaseQuery &query) -> std::expected<void, Error>;
+  auto ExecuteDropDatabaseQuery(const DropDatabaseQuery &query)
+      -> std::expected<void, Error>;
 
   auto ExecuteCreateTableQuery(const CreateTableQuery &query)
       -> std::expected<const Table *, Error>;
 
-  auto ExecuteDropTableQuery(const DropTableQuery &query) -> std::expected<void, Error>;
+  auto ExecuteDropTableQuery(const DropTableQuery &query)
+      -> std::expected<void, Error>;
 
   auto ExecuteAlterTableQuery(const AlterTableQuery &query)
-      -> std::expected<const Table *, Error>;
+      -> std::expected<void, Error>;
 
   [[nodiscard]] auto db_manager() const {
     return db_manager_;
