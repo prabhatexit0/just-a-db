@@ -2,6 +2,7 @@
 
 I have a very little knowledge about databases and I'm just trying to make a DB without following specific tutorials. 
 
+Note: To generate `compile_commands.json`, you would have to run `bazel run @hedron_compile_commands//:refresh_all`
 
 # Specifications
 
