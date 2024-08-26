@@ -1,18 +1,13 @@
-#include "ddl.h"
-#include <iostream>
+#include "qp/qp.h"
+#include "storage/storage.h"
+
 
 int main() {
-  JustADb::DatabaseManager db_manager;
-  JustADb::DdlQueryExec query_exec(&db_manager);
-  JustADb::CreateDatabaseQuery create_db_query("test_db");
+  JustADbStorage::Storage storage;
+  JustADbQP::QP qp;
 
-  auto db_res = query_exec.ExecuteCreateDatabaseQuery(create_db_query);
-  if (!db_res) {
-    std::cerr << "Error: " << db_res.error().message() << std::endl;
-    return 1;
-  }
-
-  std::cout << "Database created: " << create_db_query.db_name() << std::endl;
+  storage.storage_hello_world();
+  qp.qp_hello_world();
 
   return 0;
 }
