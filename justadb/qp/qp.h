@@ -1,8 +1,10 @@
+#pragma once
+
 namespace JustADbQP {
 class QP {
 public:
-  QP() {}
-  ~QP() {}
+  QP() = default;
+  ~QP() = default;
 
   auto qp_hello_world() -> void;
 };
