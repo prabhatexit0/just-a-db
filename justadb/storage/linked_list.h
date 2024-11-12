@@ -1,7 +1,5 @@
 #pragma once
 
-#include <functional>
-
 #include "justadb/storage/node.h"
 
 namespace Storage {
@@ -26,6 +24,18 @@ public:
       tail_->set_next(node);
       tail_ = tail_->next();
     }
+  }
+
+  auto get(auto&& compare) -> JNodePtr<T> {
+    JNodePtr<T> current = head_;
+    while (current != nullptr) {
+      if (compare(current->data())) {
+        return current;
+      }
+      current = current->next();
+    }
+
+    return nullptr;
   }
 
   // TODO: Find a way to more strictly type the compare function.
