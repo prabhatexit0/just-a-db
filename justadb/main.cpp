@@ -24,7 +24,6 @@ int main() {
   ll.print();
   std::cout << "\n -- \n -- \n";
 
-  // get 5
   const auto node = ll.get([](const DataPtr<int>& a) -> bool {
     return *a == 5;
   });

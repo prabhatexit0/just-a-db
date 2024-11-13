@@ -26,10 +26,10 @@ public:
     }
   }
 
-  auto get(auto&& compare) -> JNodePtr<T> {
+  auto get(auto&& predicate) -> JNodePtr<T> {
     JNodePtr<T> current = head_;
     while (current != nullptr) {
-      if (compare(current->data())) {
+      if (predicate(current->data())) {
         return current;
       }
       current = current->next();
@@ -39,12 +39,12 @@ public:
   }
 
   // TODO: Find a way to more strictly type the compare function.
-  void remove(auto&& compare) {
+  void remove(auto&& predicate) {
     if (!head_) {
       return;
     }
 
-    if (compare(head_->data())) {
+    if (predicate(head_->data())) {
       JNodePtr<T> temp = head_->next();
       head_.reset();
       head_ = temp;
@@ -58,7 +58,7 @@ public:
         next = current->next();
       }
 
-      if (compare(current->data())) {
+      if (predicate(current->data())) {
         current.reset();
         previous->set_next(next);
       }
