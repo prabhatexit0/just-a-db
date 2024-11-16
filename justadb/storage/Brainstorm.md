@@ -8,7 +8,7 @@ How do we store the table related information?
 
 ## Databases
 
-V1. Uses linked list
+V1. Uses linuked list
 
 ## Tables
 V1. Uses linked list
@@ -22,5 +22,9 @@ V1. Use linked list
 Everything is essentially going to be a **linked list**.
 
 There would be search methods.
+```sql
 
-## Linked List (heart)
+
+
+
+```

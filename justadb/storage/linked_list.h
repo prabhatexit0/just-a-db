@@ -1,5 +1,6 @@
 #pragma once
 
+#include "justadb/storage/disk.h"
 #include "justadb/storage/node.h"
 
 namespace Storage {
@@ -26,7 +27,7 @@ public:
     }
   }
 
-  auto get(auto&& predicate) -> JNodePtr<T> {
+  auto get(auto &&predicate) -> JNodePtr<T> {
     JNodePtr<T> current = head_;
     while (current != nullptr) {
       if (predicate(current->data())) {
@@ -39,7 +40,7 @@ public:
   }
 
   // TODO: Find a way to more strictly type the compare function.
-  void remove(auto&& predicate) {
+  void remove(auto &&predicate) {
     if (!head_) {
       return;
     }
@@ -67,7 +68,7 @@ public:
     }
   }
 
-  void print() {
+  auto print() -> void {
     JNodePtr<T> current = head_;
     while (current != nullptr) {
       current->print();
@@ -75,6 +76,40 @@ public:
       current = current->next();
     }
   }
+
+  auto saveToDisk() -> void {
+    Disk<T> disk("data.dat");
+    JNodePtr current = head_;
+    std::streampos offset = 0;
+    while (current != nullptr) {
+      disk.writeToFile(offset, *current->data());
+      offset += sizeof(T);
+      current = current->next();
+    }
+  }
+
+  auto forceClean() -> void {
+    std::cout << "FORCE CLEAN - " << std::endl;
+    head_.reset();
+    tail_.reset();
+  }
+
+  auto loadFromDisk() -> void {
+    forceClean();
+    std::streampos offset = 0;
+
+    Disk<T> disk("data.dat");
+    for (int i = 0; i < 10; i++) {
+      std::cout << "Offset - " << offset << std::endl;
+      std::expected<T, DiskError> dataWithError =
+          disk.readFromFile(offset, offset + (std::streampos)sizeof(T));
+      if (dataWithError.has_value()) {
+        std::cout << "Data - " << *dataWithError << std::endl;
+      }
+      offset += sizeof(T);
+    }
+  };
+
 private:
   JNodePtr<T> head_;
   JNodePtr<T> tail_;
